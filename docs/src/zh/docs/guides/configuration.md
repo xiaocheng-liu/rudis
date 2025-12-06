@@ -6,16 +6,16 @@ description: 帮助您配置 Rudis 的基本信息
 
 # 配置
 
-Rudis.properties 配置文件概述
+Rudis.conf 配置文件概述
 
 ## 指定配置文件启动
 
 Rudis 能够在没有配置文件的情况下使用内置默认配置启动，但这种设置仅推荐用于测试和开发目的。
 
-配置 Rudis 的正确方法是提供一个 Rudis 配置文件，通常称为 Rudis.properties。
+配置 Rudis 的正确方法是提供一个 Rudis 配置文件，通常称为 Rudis.conf。
 
 ```
-./rudis-server rudis.properties
+./rudis-server --config rudis.conf
 ```
 
 配置指令列表及其含义和预期用途在 Rudis 发行版中附带的自文档化示例 Rudis.conf 中提供。

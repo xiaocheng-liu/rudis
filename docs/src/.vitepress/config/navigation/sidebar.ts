@@ -159,16 +159,16 @@ function zhSidebar(): DefaultTheme.SidebarItem[] {
       text: '高级',
       items: [
         {
-          text: '备份与恢复',
-          link: '/zh/docs/advance/persistence',
-        },
-        {
           text: '安全',
           link: '/zh/docs/advance/security',
         },
         {
           text: '事务',
           link: '/zh/docs/advance/transactions',
+        },
+        {
+          text: '备份恢复',
+          link: '/zh/docs/advance/persistence',
         },
         {
           text: '主从同步',
