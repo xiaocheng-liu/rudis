@@ -12,10 +12,10 @@ hero:
     alt: General
   actions:
     - theme: brand
-      text: Introduce
+      text: Why Rudis
       link: /docs/guides/introduce
     - theme: alt
-      text: Install
+      text: Get Started
       link: /docs/guides/install
 
 features:

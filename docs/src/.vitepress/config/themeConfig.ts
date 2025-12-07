@@ -45,6 +45,10 @@ const themeConfig: DefaultTheme.Config = {
       indexName: 'tachiyomi',
     },
   },
+  footer: {
+    message: 'Released under the GPL-3.0 License.',
+    copyright: 'Copyright © 2025-present Sleeprite'
+  }
 }
 
 export default themeConfig
