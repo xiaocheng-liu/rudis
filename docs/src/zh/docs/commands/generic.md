@@ -11,23 +11,23 @@ description: Rudis 通用命令概述，包括 AUTH、CLIENT、ECHO、PING 和 S
 ## 命令列表
 
 <div class="command-cards">
-  <a href="./generic/auth.md" class="command-card">
+  <a href="./generic/auth" class="command-card">
     <div class="card-title">AUTH</div>
     <div class="card-description">用于验证服务器端连接密码</div>
   </a>
-  <a href="./generic/client.md" class="command-card">
+  <a href="./generic/client" class="command-card">
     <div class="card-title">CLIENT</div>
     <div class="card-description">用于获取或设置客户端连接的相关信息</div>
   </a>
-  <a href="./generic/echo.md" class="command-card">
+  <a href="./generic/echo" class="command-card">
     <div class="card-title">ECHO</div>
     <div class="card-description">打印给定的字符串，主要用于测试连接</div>
   </a>
-  <a href="./generic/ping.md" class="command-card">
+  <a href="./generic/ping" class="command-card">
     <div class="card-title">PING</div>
     <div class="card-description">用于测试与服务器的连接是否正常</div>
   </a>
-  <a href="./generic/select.md" class="command-card">
+  <a href="./generic/select" class="command-card">
     <div class="card-title">SELECT</div>
     <div class="card-description">切换到指定的数据库</div>
   </a>

@@ -11,39 +11,39 @@ Set commands allow you to store unique string elements. Sets are unordered and d
 ## Command List
 
 <div class="command-cards">
-  <a href="./set/sadd.md" class="command-card">
+  <a href="./set/sadd" class="command-card">
     <div class="card-title">SADD</div>
     <div class="card-description">Adds one or more members to a set</div>
   </a>
-  <a href="./set/scard.md" class="command-card">
+  <a href="./set/scard" class="command-card">
     <div class="card-title">SCARD</div>
     <div class="card-description">Returns the number of elements in a set</div>
   </a>
-  <a href="./set/sinter.md" class="command-card">
+  <a href="./set/sinter" class="command-card">
     <div class="card-title">SINTER</div>
     <div class="card-description">Returns the intersection of all given sets</div>
   </a>
-  <a href="./set/sismember.md" class="command-card">
+  <a href="./set/sismember" class="command-card">
     <div class="card-title">SISMEMBER</div>
     <div class="card-description">Determines whether a member is a member of a set</div>
   </a>
-  <a href="./set/smembers.md" class="command-card">
+  <a href="./set/smembers" class="command-card">
     <div class="card-title">SMEMBERS</div>
     <div class="card-description">Returns all members in a set</div>
   </a>
-  <a href="./set/spop.md" class="command-card">
+  <a href="./set/spop" class="command-card">
     <div class="card-title">SPOP</div>
     <div class="card-description">Removes and returns a random element from a set</div>
   </a>
-  <a href="./set/srem.md" class="command-card">
+  <a href="./set/srem" class="command-card">
     <div class="card-title">SREM</div>
     <div class="card-description">Removes one or more members from a set</div>
   </a>
-  <a href="./set/sunion.md" class="command-card">
+  <a href="./set/sunion" class="command-card">
     <div class="card-title">SUNION</div>
     <div class="card-description">Returns the union of all given sets</div>
   </a>
-  <a href="./set/sunionstore.md" class="command-card">
+  <a href="./set/sunionstore" class="command-card">
     <div class="card-title">SUNIONSTORE</div>
     <div class="card-description">Stores the union of all given sets in a specified set</div>
   </a>
