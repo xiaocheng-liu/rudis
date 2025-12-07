@@ -65,6 +65,10 @@ pub struct Args {
     /// 持久化配置 - 持久化方式
     #[arg(long, default_value = "always")] 
     pub appendfsync: String,
+
+    /// 最大客户端连接数
+    #[arg(long, default_value = "0")]
+    pub maxclients: usize,
 }
 
 impl Args {
@@ -188,6 +192,15 @@ impl Args {
         if self.appendfsync == "always" { 
             if let Some(afs) = config_map.get("appendfsync") {
                 self.appendfsync = afs.clone();
+            }
+        }
+        
+        // maxclients
+        if self.maxclients == 0 { 
+            if let Some(maxclients) = config_map.get("maxclients") {
+                if let Ok(mc) = maxclients.parse() {
+                    self.maxclients = mc;
+                }
             }
         }
     }

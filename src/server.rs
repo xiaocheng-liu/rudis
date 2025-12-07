@@ -82,6 +82,17 @@ impl Server {
                 loop {
                     match listener.accept().await {
                         Ok((stream, _address)) => {
+                            
+                            // 检查 maxclients 限制
+                            if self.session_manager.is_over_max_clients(self.args.maxclients) {
+                                let connection = crate::network::connection::Connection::new(stream);
+                                let error_frame = crate::frame::Frame::Error("ERR max number of clients reached".to_string());
+                                tokio::spawn(async move {
+                                    connection.write_bytes(error_frame.as_bytes()).await;
+                                });
+                                continue;
+                            }
+                            
                             let aof_sender = self.aof_sender.clone(); 
                             let session_manager_clone = self.session_manager.clone();
                             let db_manager_clone = self.db_manager.clone();
@@ -235,6 +246,7 @@ impl Handler {
     /// Handling client connections
     pub async fn handle(&mut self) {
         loop {
+
             log::debug!("Waiting for bytes");
             let bytes = match self.session.connection.read_bytes().await {
                 Ok(bytes) => bytes,

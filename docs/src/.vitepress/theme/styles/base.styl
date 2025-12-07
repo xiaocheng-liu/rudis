@@ -276,3 +276,47 @@ body {
     width: 50% !important
   }
 }
+
+/**
+ * Component: Command Cards
+ */
+
+.command-cards {
+  display: grid
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))
+  gap: 1rem
+  margin: 2rem 0
+}
+
+.command-card {
+  border: 1px solid var(--vp-c-divider)
+  border-radius: 8px
+  padding: 1.5rem
+  transition: all 0.3s ease
+  background-color: var(--vp-c-bg-soft)
+  
+  &:hover {
+    border-color: var(--vp-c-brand)
+    transform: translateY(-2px)
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+    text-decoration: none
+  }
+  
+  .card-title {
+    font-size: 1.2rem
+    font-weight: 600
+    color: var(--vp-c-brand)
+    margin-bottom: 0.5rem
+  }
+  
+  .card-description {
+    color: var(--vp-c-text-2)
+    line-height: 1.5
+  }
+}
+
+@media (max-width 640px) {
+  .command-cards {
+    grid-template-columns: 1fr
+  }
+}

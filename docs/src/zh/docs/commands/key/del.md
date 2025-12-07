@@ -1,6 +1,6 @@
 # DEL
 
-Removes the specified keys. A key is ignored if it does not exist.
+删除指定的键。如果键不存在，则忽略该键。
 
 ## Syntax
 
@@ -10,4 +10,15 @@ DEL key [key ...]
 
 ## Return
 
-Integer reply: The number of keys that were removed.
+Integer reply: 被删除的键的数量。
+
+## Examples
+
+```
+redis> SET key1 "Hello"
+OK
+redis> SET key2 "World"
+OK
+redis> DEL key1 key2 key3
+(integer) 2
+```

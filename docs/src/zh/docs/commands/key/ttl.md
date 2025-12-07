@@ -1,6 +1,6 @@
 # TTL
 
-Like TTL this command returns the remaining time to live of a key that has an expire set, with the sole difference that TTL returns the amount of remaining time in seconds while PTTL returns it in milliseconds.
+返回键的剩余生存时间（以秒为单位）。与 PTTL 命令类似，唯一的区别是 TTL 返回剩余时间的秒数，而 PTTL 返回毫秒数。
 
 ## Syntax
 
@@ -10,8 +10,18 @@ TTL key
 
 ## Return
 
-Integer reply: TTL in seconds, or a negative value in order to signal an error.
+Integer reply: 以秒为单位的 TTL，或负值表示错误。
 
-- The command returns -2 if the key does not exist.
+- 如果键不存在，命令返回 -2
+- 如果键存在但没有关联的过期时间，命令返回 -1
 
-- The command returns -1 if the key exists but has no associated expire.
+## Examples
+
+```
+redis> SET mykey "Hello"
+OK
+redis> EXPIRE mykey 10
+(integer) 1
+redis> TTL mykey
+(integer) 10
+```

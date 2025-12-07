@@ -4,7 +4,7 @@ use crate::network::{session::Session, session_role::SessionRole};
 
 /// 高性能会话管理器
 pub struct SessionManager {
-    sessions: DashMap<usize, Session>
+    sessions: DashMap<usize, Session>,
 }
 
 impl SessionManager {
@@ -12,7 +12,7 @@ impl SessionManager {
     // 创建实例
     pub fn new() -> Self {
         Self {
-            sessions: DashMap::new()
+            sessions: DashMap::new(),
         }
     }
 
@@ -32,5 +32,18 @@ impl SessionManager {
         .filter(|entry| entry.value().get_role() == &SessionRole::Slave)
         .map(|entry| entry.value().clone())
         .collect()
+    }
+
+    /// 获取当前连接数
+    pub fn get_connection_count(&self) -> usize {
+        self.sessions.len()
+    }
+
+    /// 检查是否超过最大连接数限制
+    pub fn is_over_max_clients(&self, maxclients: usize) -> bool {
+        if maxclients == 0 {
+            return false; // 0 表示无限制
+        }
+        self.get_connection_count() >= maxclients
     }
 }
