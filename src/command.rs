@@ -19,7 +19,12 @@ use crate::{
             append::Append, decr::Decr, decrby::Decrby, get::Get, getrange::GetRange, getset::GetSet, incr::Incr, incrby::Incrby, incrbyfloat::IncrbyFloat, mget::Mget, mset::Mset, set::Set, setrange::SetRange, strlen::Strlen
         }, transaction::{
             multi::Multi, exec::Exec, discard::Discard
-        }, unknown::Unknown
+        }, unknown::Unknown,
+        json::{
+            set::JsonSet,
+            get::JsonGet,
+            del::JsonDel,
+        }
     },
     frame::Frame,
 };
@@ -110,7 +115,11 @@ pub enum Command {
     // 事务命令
     Multi(Multi),
     Exec(Exec),
-    Discard(Discard)
+    Discard(Discard),
+    // JSON命令
+    JsonSet(JsonSet),
+    JsonGet(JsonGet),
+    JsonDel(JsonDel)
 }
 
 impl Command {
@@ -199,6 +208,10 @@ impl Command {
             "MULTI" => Command::Multi(Multi::parse_from_frame(frame)?),
             "EXEC" => Command::Exec(Exec::parse_from_frame(frame)?),
             "DISCARD" => Command::Discard(Discard::parse_from_frame(frame)?),
+            // JSON命令解析
+            "JSON.SET" => Command::JsonSet(JsonSet::parse_from_frame(frame)?),
+            "JSON.GET" => Command::JsonGet(JsonGet::parse_from_frame(frame)?),
+            "JSON.DEL" => Command::JsonDel(JsonDel::parse_from_frame(frame)?),
             _ => Command::Unknown(Unknown::parse_from_frame(frame)?),
         };
         Ok(command)
@@ -246,7 +259,9 @@ impl Command {
             Command::Sunionstore(_) |
             Command::Zadd(_) |
             Command::Zrem(_) |
-            Command::Move(_) => true,
+            Command::Move(_) |
+            Command::JsonSet(_) |
+            Command::JsonDel(_) => true,
             _ => false,
         }
     }

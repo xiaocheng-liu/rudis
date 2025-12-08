@@ -28,7 +28,7 @@ Rudis 是一个采用 Rust 语言编写得高性能键值存储系统，旨在�
 ### 🌟 特性
 
 - 跨平台，兼容 windows、linux、macos 系统。
-- 兼容 字符串、集合、哈希、列表、有序集合数据结构。
+- 兼容 字符串、集合、哈希、列表、有序集合、JSON数据结构。
 - 提供 rdb 与 aof 机制以支持数据备份和恢复。
 - 拥有卓越的处理速度和即时响应能力。
 - 多个线程中并发创建和删除键值。
@@ -39,11 +39,13 @@ Rudis 是一个采用 Rust 语言编写得高性能键值存储系统，旨在�
 
 ### v0.2.0
 
-- 新增 Set 数据结构 Sdiff 命令。
+- 新增 JSON 模块。
+- 新增 JSON.set JSON.get JSON.del 命令。
 - 增加 maxclients 配置, 限制客户端连接数量。
 - 增加 appendsync 配置，配置 AOF 持久化的执行策略。
 - 新增 String 数据结构 Setrange 命令。
 - 新增 list 数据结构 Ltrim 命令。
+- 新增 Set 数据结构 Sdiff 命令。
 
 ### v0.1.0
 
@@ -248,6 +250,24 @@ move 命令
 ```
 127.0.0.1:6379> move user 0
 OK
+```
+
+JSON.SET 命令
+```
+127.0.0.1:6379> JSON.SET user:1 $ {"name":"John","age":30}
+OK
+```
+
+JSON.GET 命令
+```
+127.0.0.1:6379> JSON.GET user:1
+"{\"name\":\"John\",\"age\":30}"
+```
+
+JSON.DEL 命令
+```
+127.0.0.1:6379> JSON.DEL user:1
+(integer) 1
 ```
 
 > 有关事务功能的详细信息，请参阅 [事务功能说明](README-TRANSACTIONS.md)

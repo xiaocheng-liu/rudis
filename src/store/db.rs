@@ -52,7 +52,8 @@ pub enum Structure {
     SortedSet(BTreeMap<String, f64>),
     VectorCollection(Vector),
     Set(HashSet<String>),
-    List(Vec<String>)
+    List(Vec<String>),
+    Json(String)  // 使用字符串存储JSON数据
 }
 
 #[derive(Clone, Encode, Decode)]
@@ -217,6 +218,10 @@ impl Db {
             Command::Lrange(lrange) => lrange.apply(self),
             Command::GetSet(getset) => getset.apply(self),
             Command::Info(info) => info.apply(self),
+            // JSON commands
+            Command::JsonSet(jsonset) => jsonset.apply(self),
+            Command::JsonGet(jsonget) => jsonget.apply(self),
+            Command::JsonDel(jsondel) => jsondel.apply(self),
             _ => Err(Error::msg("Unknown command")),
         }
     }
