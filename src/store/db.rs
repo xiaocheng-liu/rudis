@@ -163,6 +163,7 @@ impl Db {
             Command::Mset(mset) => mset.apply(self),
             Command::Mget(mget) => mget.apply(self),
             Command::Strlen(strlen) => strlen.apply(self),
+            Command::SetRange(setrange) => setrange.apply(self),
             Command::Append(append) => append.apply(self),
             Command::Dbsize(dbsize) => dbsize.apply(self),
             Command::Persist(persist) => persist.apply(self),

@@ -49,6 +49,28 @@ mod tests {
     }
 
     #[test]
+    fn test_setrange() {
+        let mut con = setup();
+
+        // 测试基本的 setrange 功能
+        let _: () = con.set("setrange-test", "Hello World").unwrap();
+        let result: usize = con.setrange("setrange-test", 6, "Redis").unwrap();
+        assert_eq!(result, 11);
+        
+        let get_result: String = con.get("setrange-test").unwrap();
+        assert_eq!(get_result, "Hello Redis");
+
+        // 测试扩展字符串长度的情况
+        let _: () = con.set("setrange-extend", "Hello").unwrap();
+        let result: usize = con.setrange("setrange-extend", 10, "World").unwrap();
+        assert_eq!(result, 15);
+        
+        let get_result: String = con.get("setrange-extend").unwrap();
+        // 注意：中间会有空字节，所以结果可能不是直观的 "Hello     World"
+        assert_eq!(get_result.len(), 15);
+    }
+
+    #[test]
     fn test_exists() {
         let mut con = setup();
 

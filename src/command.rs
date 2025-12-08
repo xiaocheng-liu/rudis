@@ -13,9 +13,10 @@ use crate::{
         }, server::{bgsave::Bgsave, dbsize::Dbsize, flushall::Flushall, flushdb::Flushdb, info::Info, save::Save}, server_sync::{psync::Psync, replconf::Replconf}, set::{
             sadd::Sadd, scard::Scard, sdiff::Sdiff, sinter::Sinter, sismember::Sismember, smembers::Smembers,
             spop::Spop, srem::Srem, sunion::Sunion, sunionstore::Sunionstore,
-        }, sorted_set::{            zadd::Zadd, zcard::Zcard, zcount::Zcount, zrank::Zrank, zrem::Zrem, zscore::Zscore,
+        }, sorted_set::{
+            zadd::Zadd, zcard::Zcard, zcount::Zcount, zrank::Zrank, zrem::Zrem, zscore::Zscore,
         }, string::{
-            append::Append, decr::Decr, decrby::Decrby, get::Get, getrange::GetRange, getset::GetSet, incr::Incr, incrby::Incrby, incrbyfloat::IncrbyFloat, mget::Mget, mset::Mset, set::Set, strlen::Strlen
+            append::Append, decr::Decr, decrby::Decrby, get::Get, getrange::GetRange, getset::GetSet, incr::Incr, incrby::Incrby, incrbyfloat::IncrbyFloat, mget::Mget, mset::Mset, set::Set, setrange::SetRange, strlen::Strlen
         }, transaction::{
             multi::Multi, exec::Exec, discard::Discard
         }, unknown::Unknown
@@ -39,6 +40,7 @@ pub enum Command {
     Pttl(Pttl),
     Select(Select),
     Set(Set),
+    SetRange(SetRange),
     Ttl(Ttl),
     Unknown(Unknown),
     Mset(Mset),
@@ -127,6 +129,7 @@ impl Command {
             "TYPE" => Command::Type(Type::parse_from_frame(frame)?),
             "SELECT" => Command::Select(Select::parse_from_frame(frame)?),
             "SET" => Command::Set(Set::parse_from_frame(frame)?),
+            "SETRANGE" => Command::SetRange(SetRange::parse_from_frame(frame)?),
             "TTL" => Command::Ttl(Ttl::parse_from_frame(frame)?),
             "RANDOMKEY" => Command::RandomKey(RandomKey::parse_from_frame(frame)?),
             "RENAME" => Command::Rename(Rename::parse_from_frame(frame)?),
@@ -220,6 +223,7 @@ impl Command {
             Command::IncrbyFloat(_) |
             Command::Mset(_) |
             Command::Set(_) | 
+            Command::SetRange(_) |
             Command::Flushall(_) |
             Command::Flushdb(_) |
             Command::Hdel(_) |
