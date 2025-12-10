@@ -8,3 +8,4 @@ pub mod srem;
 pub mod sunion;
 pub mod sinter;
 pub mod sdiff;
+pub mod sscan;

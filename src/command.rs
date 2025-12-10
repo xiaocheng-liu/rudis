@@ -6,19 +6,18 @@ use crate::{
             hdel::Hdel, hexists::Hexists, hget::Hget, hgetall::Hgetall, hkeys::Hkeys, hlen::Hlen,
             hmget::Hmget, hmset::Hmset, hset::Hset, hsetnx::Hsetnx, hstrlen::Hstrlen, hvals::Hvals,
         }, key::{
-            del::Del, exists::Exists, expire::Expire, expireat::ExpireAt, keys::Keys, persist::Persist, pexpire::Pexpire, pexpireat::PexpireAt, pttl::Pttl, randomkey::RandomKey, rename::Rename, renamenx::Renamenx, r#move::Move, scan::Scan, ttl::Ttl, r#type::Type
+            del::Del, exists::Exists, expire::Expire, expireat::ExpireAt, keys::Keys, r#move::Move, persist::Persist, pexpire::Pexpire, pexpireat::PexpireAt, pttl::Pttl, randomkey::RandomKey, rename::Rename, renamenx::Renamenx, scan::Scan, ttl::Ttl, r#type::Type
         }, listing::{
             lindex::Lindex, llen::Llen, lpop::Lpop, lpush::Lpush, lpushx::Lpushx, lrange::Lrange,
             lset::Lset, ltrim::Ltrim, rpop::Rpop, rpush::Rpush, rpushx::Rpushx,
         }, server::{bgsave::Bgsave, dbsize::Dbsize, flushall::Flushall, flushdb::Flushdb, info::Info, save::Save}, server_sync::{psync::Psync, replconf::Replconf}, set::{
-            sadd::Sadd, scard::Scard, sdiff::Sdiff, sinter::Sinter, sismember::Sismember, smembers::Smembers,
-            spop::Spop, srem::Srem, sunion::Sunion, sunionstore::Sunionstore,
+            sadd::Sadd, scard::Scard, sdiff::Sdiff, sinter::Sinter, sismember::Sismember, smembers::Smembers, spop::Spop, srem::Srem, sscan::Sscan, sunion::Sunion, sunionstore::Sunionstore
         }, sorted_set::{
             zadd::Zadd, zcard::Zcard, zcount::Zcount, zrank::Zrank, zrem::Zrem, zscore::Zscore,
         }, string::{
             append::Append, decr::Decr, decrby::Decrby, get::Get, getrange::GetRange, getset::GetSet, incr::Incr, incrby::Incrby, incrbyfloat::IncrbyFloat, mget::Mget, mset::Mset, set::Set, setrange::SetRange, strlen::Strlen
         }, transaction::{
-            multi::Multi, exec::Exec, discard::Discard
+            discard::Discard, exec::Exec, multi::Multi
         }, unknown::Unknown
     },
     frame::Frame,
@@ -107,6 +106,7 @@ pub enum Command {
     GetSet(GetSet),
     Info(Info),
     Move(Move),
+    Sscan(Sscan),
     // 事务命令
     Multi(Multi),
     Discard(Discard),
@@ -199,6 +199,7 @@ impl Command {
             "EXEC" => Command::Exec(Exec::parse_from_frame(frame)?),
             "DISCARD" => Command::Discard(Discard::parse_from_frame(frame)?),
             "SCAN" => Command::Scan(Scan::parse_from_frame(frame)?),
+            "SSCAN" => Command::Sscan(Sscan::parse_from_frame(frame)?),
             _ => Command::Unknown(Unknown::parse_from_frame(frame)?),
         };
         Ok(command)

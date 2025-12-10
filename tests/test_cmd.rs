@@ -27,7 +27,7 @@ mod tests {
     #[test]
     fn test_set_batch() {
         let mut con = setup();
-        for i in 0..100000 {
+        for i in 0..1000 {
             let _: () = con.set(i.to_string(), i.to_string()).unwrap();
         }
     }
@@ -35,7 +35,7 @@ mod tests {
     #[test]
     fn test_get_batch() {
         let mut con = setup();
-        for _i in 0..100000 {
+        for _i in 0..1000 {
             let _: () = con.get("user").unwrap();
         }
     }

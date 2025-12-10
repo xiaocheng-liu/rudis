@@ -17,24 +17,31 @@ mod tests {
     fn test_scan_basic() {
         let mut con = setup();
         
+        // 清理数据库
+        let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
+        
         // 添加一些测试数据
-        let _: () = con.set("key1", "value1").unwrap();
-        let _: () = con.set("key2", "value2").unwrap();
-        let _: () = con.set("key3", "value3").unwrap();
+        let _: () = con.set("scan-key1", "value1").unwrap();
+        let _: () = con.set("scan-key2", "value2").unwrap();
+        let _: () = con.set("scan-key3", "value3").unwrap();
         
         // 测试基本的SCAN命令
         let result: (i32, Vec<String>) = redis::cmd("SCAN").arg("0").query(&mut con).unwrap();
         let (cursor, keys) = result;
-        
+
         // 验证返回的结果
-        assert!(cursor >= 0);
+        assert!(cursor >= 0);  // 游标应该大于等于0
         assert!(!keys.is_empty());
-        assert!(keys.contains(&"key1".to_string()) || keys.contains(&"key2".to_string()) || keys.contains(&"key3".to_string()));
+        // 检查至少包含我们设置的一个键
+        assert!(keys.contains(&"scan-key1".to_string()) || keys.contains(&"scan-key2".to_string()) || keys.contains(&"scan-key3".to_string()));
     }
 
     #[test]
     fn test_scan_with_match() {
         let mut con = setup();
+        
+        // 清理数据库
+        let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
         
         // 添加一些测试数据
         let _: () = con.set("user:1", "value1").unwrap();
@@ -57,6 +64,9 @@ mod tests {
     fn test_scan_with_count() {
         let mut con = setup();
         
+        // 清理数据库
+        let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
+        
         // 添加一些测试数据
         for i in 0..20 {
             let _: () = con.set(format!("test_key_{}", i), format!("value_{}", i)).unwrap();
@@ -76,6 +86,9 @@ mod tests {
     #[test]
     fn test_scan_complete_iteration() {
         let mut con = setup();
+        
+        // 清理数据库
+        let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
         
         // 添加一些测试数据
         let test_keys: Vec<String> = (0..10).map(|i| format!("scan_test_key_{}", i)).collect();

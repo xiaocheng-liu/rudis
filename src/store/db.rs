@@ -219,6 +219,7 @@ impl Db {
             Command::GetSet(getset) => getset.apply(self),
             Command::Info(info) => info.apply(self),
             Command::Scan(scan) => scan.apply(self),
+            Command::Sscan(sscan) => sscan.apply(self),
             _ => Err(Error::msg("Unknown command")),
         }
     }
