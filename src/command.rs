@@ -15,7 +15,7 @@ use crate::{
         }, sorted_set::{
             zadd::Zadd, zcard::Zcard, zcount::Zcount, zrank::Zrank, zrem::Zrem, zscore::Zscore,
         }, string::{
-            append::Append, decr::Decr, decrby::Decrby, get::Get, getrange::GetRange, getset::GetSet, incr::Incr, incrby::Incrby, incrbyfloat::IncrbyFloat, mget::Mget, mset::Mset, set::Set, setrange::SetRange, strlen::Strlen
+            append::Append, decr::Decr, decrby::Decrby, get::Get, getrange::GetRange, getset::GetSet, incr::Incr, incrby::Incrby, incrbyfloat::IncrbyFloat, mget::Mget, mset::Mset, msetnx::Msetnx, set::Set, setrange::SetRange, strlen::Strlen
         }, transaction::{
             discard::Discard, exec::Exec, multi::Multi
         }, unknown::Unknown
@@ -44,6 +44,7 @@ pub enum Command {
     Unknown(Unknown),
     Mset(Mset),
     Mget(Mget),
+    Msetnx(Msetnx),
     Strlen(Strlen),
     Sunionstore(Sunionstore),
     Renamenx(Renamenx),
@@ -136,6 +137,7 @@ impl Command {
             "STRLEN" => Command::Strlen(Strlen::parse_from_frame(frame)?),
             "MSET" => Command::Mset(Mset::parse_from_frame(frame)?),
             "MGET" => Command::Mget(Mget::parse_from_frame(frame)?),
+            "MSETNX" => Command::Msetnx(Msetnx::parse_from_frame(frame)?),
             "APPEND" => Command::Append(Append::parse_from_frame(frame)?),
             "DBSIZE" => Command::Dbsize(Dbsize::parse_from_frame(frame)?),
             "HSET" => Command::Hset(Hset::parse_from_frame(frame)?),
@@ -222,6 +224,7 @@ impl Command {
             Command::Incrby(_) |
             Command::IncrbyFloat(_) |
             Command::Mset(_) |
+            Command::Msetnx(_) |
             Command::Set(_) | 
             Command::SetRange(_) |
             Command::Flushall(_) |
