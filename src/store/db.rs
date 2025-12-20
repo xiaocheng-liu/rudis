@@ -206,6 +206,7 @@ impl Db {
             Command::Ltrim(ltrim) => ltrim.apply(self),
             Command::Zadd(zadd) => zadd.apply(self),
             Command::Zcount(zcount) => zcount.apply(self),
+            Command::Zincrby(zincrby) => zincrby.apply(self),
             Command::Zscore(zscore) => zscore.apply(self),
             Command::Zcard(zcard) => zcard.apply(self),
             Command::Zrank(zrank) => zrank.apply(self),

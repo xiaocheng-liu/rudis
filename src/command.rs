@@ -13,7 +13,7 @@ use crate::{
         }, server::{bgsave::Bgsave, dbsize::Dbsize, flushall::Flushall, flushdb::Flushdb, info::Info, save::Save}, server_sync::{psync::Psync, replconf::Replconf}, set::{
             sadd::Sadd, scard::Scard, sdiff::Sdiff, sinter::Sinter, sismember::Sismember, smembers::Smembers, spop::Spop, srem::Srem, sscan::Sscan, sunion::Sunion, sunionstore::Sunionstore
         }, sorted_set::{
-            zadd::Zadd, zcard::Zcard, zcount::Zcount, zrank::Zrank, zrem::Zrem, zscore::Zscore,
+            zadd::Zadd, zcard::Zcard, zcount::Zcount, zincrby::Zincrby, zrank::Zrank, zrem::Zrem, zscore::Zscore,
         }, string::{
             append::Append, decr::Decr, decrby::Decrby, get::Get, getrange::GetRange, getset::GetSet, incr::Incr, incrby::Incrby, incrbyfloat::IncrbyFloat, mget::Mget, mset::Mset, msetnx::Msetnx, set::Set, setrange::SetRange, strlen::Strlen
         }, transaction::{
@@ -88,6 +88,7 @@ pub enum Command {
     Sunion(Sunion),
     Zcount(Zcount),
     Zadd(Zadd),
+    Zincrby(Zincrby),
     Zscore(Zscore),
     Zcard(Zcard),
     Zrank(Zrank),
@@ -178,6 +179,7 @@ impl Command {
             "SUNION" => Command::Sunion(Sunion::parse_from_frame(frame)?),
             "ZCOUNT" => Command::Zcount(Zcount::parse_from_frame(frame)?),
             "ZADD" => Command::Zadd(Zadd::parse_from_frame(frame)?),
+            "ZINCRBY" => Command::Zincrby(Zincrby::parse_from_frame(frame)?),
             "ZCARD" => Command::Zcard(Zcard::parse_from_frame(frame)?),
             "ZSCORE" => Command::Zscore(Zscore::parse_from_frame(frame)?),
             "ZREM" => Command::Zrem(Zrem::parse_from_frame(frame)?),
@@ -248,6 +250,7 @@ impl Command {
             Command::Srem(_) |
             Command::Sunionstore(_) |
             Command::Zadd(_) |
+            Command::Zincrby(_) |
             Command::Zrem(_) |
             Command::Move(_) |
             _ => false,
