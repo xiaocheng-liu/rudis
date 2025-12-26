@@ -5,3 +5,4 @@ pub mod zrem;
 pub mod zscore;
 pub mod zcard;
 pub mod zrank;
+pub mod zlexcount;
