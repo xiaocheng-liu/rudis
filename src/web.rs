@@ -7,6 +7,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 use tower_http::{
@@ -38,11 +39,13 @@ impl WebServer {
     pub async fn start(self, port: u16) {
         let max_databases = self.args.databases;
         let bind_addr = format!("{}:{}", self.args.bind, port);
+        let aof_path = PathBuf::from(&self.args.appendfilename);
         let web_state = Arc::new(WebState {
             db_manager: self.db_manager,
             max_databases,
             webuser: self.args.webuser.clone(),
             webpass: self.args.webpass.clone(),
+            aof_path,
         });
         
         let web_router = create_router(web_state);
@@ -56,6 +59,7 @@ pub struct WebState {
     pub max_databases: usize,
     pub webuser: String,
     pub webpass: String,
+    pub aof_path: PathBuf,
 }
 
 /// 数据库信息
@@ -119,6 +123,13 @@ struct ListKeysQuery {
     db: Option<usize>,
 }
 
+/// AOF日志查询参数
+#[derive(Deserialize)]
+struct AofLogsQuery {
+    page: Option<usize>,
+    size: Option<usize>,
+}
+
 /// 创建Web路由
 fn create_router(state: Arc<WebState>) -> Router {
     Router::new()
@@ -131,6 +142,7 @@ fn create_router(state: Arc<WebState>) -> Router {
         .route("/api/keys/:key/ttl", put(update_key_ttl))
         .route("/api/keys/:key", post(set_key_value))
         .route("/api/cli", post(execute_cli))
+        .route("/api/aof-logs", get(get_aof_logs))
         
         // 静态文件服务
         .nest_service("/", ServeDir::new("static"))
@@ -239,6 +251,90 @@ fn format_frame_result(frame: &Frame) -> String {
                     .join("\n")
             }
         }
+    }
+}
+
+/// 获取AOF日志
+async fn get_aof_logs(
+    State(state): State<Arc<WebState>>,
+    Query(params): Query<AofLogsQuery>,
+) -> impl IntoResponse {
+    let page = params.page.unwrap_or(1);
+    let size = params.size.unwrap_or(1000).min(1000);
+    let file_path = state.aof_path.to_string_lossy().to_string();
+    
+    if !state.aof_path.exists() {
+        return Json(json!({
+            "success": true,
+            "data": [],
+            "total": 0,
+            "page": page,
+            "size": size,
+            "file_path": file_path,
+            "file_size": "0B"
+        }));
+    }
+
+    let file_size = match tokio::fs::metadata(&state.aof_path).await {
+        Ok(meta) => format_memory(meta.len() as usize),
+        Err(_) => "0B".to_string(),
+    };
+
+    match tokio::fs::read(&state.aof_path).await {
+        Ok(content) => {
+            let mut commands = Vec::new();
+            let separator = b"\r\n\r\n";
+            let mut start = 0;
+            
+            while let Some(pos) = content[start..].windows(separator.len()).position(|w| w == separator) {
+                let end = start + pos;
+                let frame_data = &content[start..end + 2];
+                if !frame_data.is_empty() {
+                    if let Ok(frame) = Frame::parse_from_bytes(frame_data) {
+                        commands.push(format_frame_as_command(&frame));
+                    }
+                }
+                start = end + separator.len();
+            }
+            
+            let total = commands.len();
+            // 从后往前取，返回最新的命令
+            let start_idx = if total > page * size { total - page * size } else { 0 };
+            let end_idx = if total > (page - 1) * size { total - (page - 1) * size } else { 0 };
+            let page_data: Vec<_> = commands[start_idx..end_idx].iter().rev().cloned().collect();
+            
+            Json(json!({
+                "success": true,
+                "data": page_data,
+                "total": total,
+                "page": page,
+                "size": size,
+                "file_path": file_path,
+                "file_size": file_size
+            }))
+        }
+        Err(e) => Json(json!({
+            "success": false,
+            "error": format!("读取AOF文件失败: {}", e)
+        }))
+    }
+}
+
+/// 将Frame格式化为命令字符串
+fn format_frame_as_command(frame: &Frame) -> String {
+    match frame {
+        Frame::Array(arr) => {
+            arr.iter()
+                .map(|f| match f {
+                    Frame::BulkString(s) => s.clone(),
+                    Frame::SimpleString(s) => s.clone(),
+                    Frame::Integer(i) => i.to_string(),
+                    _ => String::new(),
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        }
+        _ => String::new(),
     }
 }
 
