@@ -69,6 +69,10 @@ pub struct Args {
     /// 最大客户端连接数
     #[arg(long, default_value = "0")]
     pub maxclients: usize,
+
+    /// Web 管理界面端口
+    #[arg(long, default_value = "8080")]
+    pub webport: u16,
 }
 
 impl Args {
@@ -196,6 +200,15 @@ impl Args {
             if let Some(maxclients) = config_map.get("maxclients") {
                 if let Ok(mc) = maxclients.parse() {
                     self.maxclients = mc;
+                }
+            }
+        }
+
+        // webport
+        if self.webport == 8080 {
+            if let Some(wp) = config_map.get("webport") {
+                if let Ok(port) = wp.parse() {
+                    self.webport = port;
                 }
             }
         }

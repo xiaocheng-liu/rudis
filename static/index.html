@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rudis - Redis 可视化管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --danger: #f85149;
+            --success: #3fb950;
+            --warning: #d29922;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部区域 */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .logo img {
+            height: 32px;
+        }
+
+        /* 中间指标区 */
+        .stats-bar {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 16px;
+            border-right: 1px solid var(--border);
+        }
+
+        .stat-item:last-child { border-right: none; }
+
+        .stat-icon { font-size: 16px; }
+        .stat-value { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .db-select {
+            padding: 6px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            width: 60px;
+            text-align: center;
+            -moz-appearance: textfield;
+        }
+
+        .db-select::-webkit-outer-spin-button,
+        .db-select::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .db-icon {
+            color: var(--text-secondary);
+        }
+
+        .db-select:focus { outline: none; border-color: var(--accent); }
+
+        .db-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* 主内容区 */
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 左侧键列表 */
+        .key-panel {
+            width: 340px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .key-toolbar {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .search-input:focus { outline: none; border-color: var(--accent); }
+        .search-input::placeholder { color: var(--text-secondary); }
+
+        .key-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .key-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .key-item:hover { background: var(--bg-tertiary); }
+        .key-item.active { background: var(--bg-tertiary); border-left: 3px solid var(--accent); }
+
+        .key-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            word-break: break-all;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            color: var(--text-primary);
+        }
+
+        .key-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .key-type {
+            padding: 2px 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        .key-type.string { color: var(--accent); }
+        .key-type.hash { color: var(--success); }
+        .key-type.list { color: var(--warning); }
+        .key-type.set { color: #a371f7; }
+        .key-type.zset { color: #f778ba; }
+
+        /* 右侧预览区 */
+        .preview-panel {
+            flex: 1;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .preview-header {
+            padding: 20px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .preview-key {
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            color: var(--accent);
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+
+        .preview-meta {
+            display: flex;
+            gap: 24px;
+        }
+
+        .preview-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-meta-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .preview-meta-value {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 4px 10px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .preview-actions {
+            padding: 12px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+
+        .preview-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover { background: var(--bg-secondary); border-color: var(--text-secondary); }
+        
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        
+        .btn-danger { color: var(--danger); }
+        .btn-danger:hover { background: rgba(248, 81, 73, 0.1); border-color: var(--danger); }
+
+        /* 值展示 */
+        .value-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .value-header {
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .value-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .value-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .value-body {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* String类型展示 */
+        .string-value {
+            padding: 20px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-primary);
+        }
+
+        /* 表格类型展示 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            background: var(--bg-tertiary);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .data-table td {
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 13px;
+        }
+
+        .data-table tbody tr:hover { background: var(--bg-tertiary); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        
+        .field-name { color: var(--accent); font-weight: 500; }
+        .index-col { color: var(--text-secondary); width: 80px; }
+
+        /* 空状态 */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            padding-top: 30px;
+            padding-bottom: 30px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .empty-text { font-size: 14px; }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            width: 480px;
+            max-width: 90%;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <!-- 顶部区域 -->
+    <div class="header">
+        <div class="logo">
+            <img src="/logo.png" alt="Rudis">
+            <span>Rudis</span>
+        </div>
+        <div class="stats-bar">
+            <div class="stat-item" title="总键数">
+                <span class="stat-icon">🔑</span>
+                <span class="stat-value" id="statKeys">0</span>
+            </div>
+            <div class="stat-item" title="内存占用">
+                <span class="stat-icon">💾</span>
+                <span class="stat-value" id="statMemory">0B</span>
+            </div>
+            <div class="stat-item" title="客户端">
+                <span class="stat-icon">👥</span>
+                <span class="stat-value" id="statClients">0</span>
+            </div>
+            <div class="stat-item" title="数据库">
+                <span class="stat-icon">🗄️</span>
+                <span class="stat-value" id="statDbs">0</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <svg class="db-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+            <input type="number" class="db-select" id="dbSelect" value="0" min="0">
+            <button class="btn" onclick="refreshAll()" title="刷新">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                    <path d="M16 16h5v5"/>
+                </svg>
+            </button>
+            <button class="btn btn-primary" onclick="openCreateModal()">创建 Key</button>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main">
+        <!-- 左侧键列表 -->
+        <div class="key-panel">
+            <div class="key-toolbar">
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索键名...">
+            </div>
+            <div class="key-list" id="keyList"></div>
+        </div>
+
+        <!-- 右侧预览区 -->
+        <div class="preview-panel" id="previewPanel">
+            <div class="empty-state">
+                <div class="empty-icon">📦</div>
+                <div class="empty-text">选择一个键查看详情</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建键模态框 -->
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <div class="modal-title">新建键</div>
+            <div class="form-group">
+                <label>键名</label>
+                <input type="text" id="newKeyName" placeholder="请输入键名">
+            </div>
+            <div class="form-group">
+                <label>类型</label>
+                <select id="newKeyType">
+                    <option value="string">String</option>
+                    <option value="hash">Hash</option>
+                    <option value="list">List</option>
+                    <option value="set">Set</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>值</label>
+                <textarea id="newKeyValue" placeholder="请输入值"></textarea>
+            </div>
+            <div class="form-group">
+                <label>过期时间（秒，留空永不过期）</label>
+                <input type="number" id="newKeyTtl" placeholder="留空表示永不过期">
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeCreateModal()">取消</button>
+                <button class="btn btn-primary" onclick="createKey()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDb = 0;
+        let selectedKey = null;
+        let keys = [];
+
+        // 初始化
+        async function init() {
+            await loadStats();
+            await loadDatabases();
+            await loadKeys();
+        }
+
+        // 加载统计信息
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('statKeys').textContent = data.data.total_keys;
+                    document.getElementById('statMemory').textContent = data.data.used_memory_human;
+                    document.getElementById('statClients').textContent = data.data.connected_clients;
+                    document.getElementById('statDbs').textContent = data.data.databases;
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // 加载数据库列表
+        let maxDbIndex = 0;
+        async function loadDatabases() {
+            try {
+                const res = await fetch('/api/databases');
+                const data = await res.json();
+                if (data.success && data.data.length > 0) {
+                    maxDbIndex = data.data.length - 1;
+                    document.getElementById('dbSelect').max = maxDbIndex;
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // 切换数据库
+        async function selectDatabase(id) {
+            const newDb = parseInt(id);
+            if (isNaN(newDb) || newDb < 0 || newDb > maxDbIndex) {
+                document.getElementById('dbSelect').value = currentDb;
+                return;
+            }
+            currentDb = newDb;
+            selectedKey = null;
+            await loadKeys();
+            await loadStats();
+            renderEmptyPreview();
+        }
+
+        // 数据库输入框事件
+        document.addEventListener('DOMContentLoaded', () => {
+            const dbInput = document.getElementById('dbSelect');
+            dbInput.addEventListener('change', () => selectDatabase(dbInput.value));
+            dbInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { dbInput.blur(); selectDatabase(dbInput.value); }
+            });
+        });
+
+        // 刷新所有
+        async function refreshAll() {
+            await loadStats();
+            await loadDatabases();
+            await loadKeys();
+            if (selectedKey) await loadKeyDetail(selectedKey);
+        }
+
+        // 加载键列表
+        async function loadKeys(pattern = '*') {
+            try {
+                const res = await fetch(`/api/keys?db=${currentDb}&pattern=${encodeURIComponent(pattern)}`);
+                const data = await res.json();
+                if (data.success) {
+                    keys = data.data;
+                    renderKeyList();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // 渲染键列表
+        function renderKeyList() {
+            const container = document.getElementById('keyList');
+            if (keys.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">暂无数据</div></div>';
+                return;
+            }
+            container.innerHTML = keys.map(k => `
+                <div class="key-item ${selectedKey === k.key ? 'active' : ''}" onclick="selectKey('${escapeAttr(k.key)}')">
+                    <div class="key-name">${escapeHtml(k.key)}</div>
+                    <div class="key-meta">
+                        <span class="key-type ${k.type}">${k.type}</span>
+                        <span>TTL: ${k.ttl === -1 ? '∞' : k.ttl + 's'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 选择键
+        async function selectKey(key) {
+            selectedKey = key;
+            renderKeyList();
+            await loadKeyDetail(key);
+        }
+
+        // 加载键详情
+        async function loadKeyDetail(key) {
+            try {
+                const res = await fetch(`/api/keys/${encodeURIComponent(key)}?db=${currentDb}`);
+                const data = await res.json();
+                if (data.success) renderPreview(data.data);
+            } catch (e) { console.error(e); }
+        }
+
+        // 渲染预览
+        function renderPreview(data) {
+            const panel = document.getElementById('previewPanel');
+            let valueHtml = '';
+
+            if (data.type === 'string') {
+                valueHtml = `
+                    <div class="value-container">
+                        <div class="value-header">
+                            <span class="value-title">字符串值</span>
+                            <span class="value-count">${data.value.length} 字符</span>
+                        </div>
+                        <div class="value-body">
+                            <div class="string-value">${escapeHtml(data.value)}</div>
+                        </div>
+                    </div>`;
+            } else if (data.type === 'hash') {
+                const entries = Object.entries(data.value);
+                valueHtml = `
+                    <div class="value-container">
+                        <div class="value-header">
+                            <span class="value-title">哈希字段</span>
+                            <span class="value-count">${entries.length} 个字段</span>
+                        </div>
+                        <div class="value-body">
+                            <table class="data-table">
+                                <thead><tr><th>字段</th><th>值</th></tr></thead>
+                                <tbody>${entries.map(([k,v]) => `<tr><td class="field-name">${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`).join('')}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            } else if (data.type === 'list') {
+                const items = data.value || [];
+                valueHtml = `
+                    <div class="value-container">
+                        <div class="value-header">
+                            <span class="value-title">列表元素</span>
+                            <span class="value-count">${items.length} 个元素</span>
+                        </div>
+                        <div class="value-body">
+                            <table class="data-table">
+                                <thead><tr><th>索引</th><th>值</th></tr></thead>
+                                <tbody>${items.map((v,i) => `<tr><td class="index-col">${i}</td><td>${escapeHtml(v)}</td></tr>`).join('')}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            } else if (data.type === 'set') {
+                const items = data.value || [];
+                valueHtml = `
+                    <div class="value-container">
+                        <div class="value-header">
+                            <span class="value-title">集合成员</span>
+                            <span class="value-count">${items.length} 个成员</span>
+                        </div>
+                        <div class="value-body">
+                            <table class="data-table">
+                                <thead><tr><th>#</th><th>成员</th></tr></thead>
+                                <tbody>${items.map((v,i) => `<tr><td class="index-col">${i+1}</td><td>${escapeHtml(v)}</td></tr>`).join('')}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            } else if (data.type === 'zset') {
+                const items = data.value || [];
+                valueHtml = `
+                    <div class="value-container">
+                        <div class="value-header">
+                            <span class="value-title">有序集合</span>
+                            <span class="value-count">${items.length} 个成员</span>
+                        </div>
+                        <div class="value-body">
+                            <table class="data-table">
+                                <thead><tr><th>排名</th><th>成员</th></tr></thead>
+                                <tbody>${items.map((v,i) => `<tr><td class="index-col">#${i+1}</td><td>${escapeHtml(v)}</td></tr>`).join('')}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            }
+
+            panel.innerHTML = `
+                <div class="preview-header">
+                    <div class="preview-key">${escapeHtml(data.key)}</div>
+                    <div class="preview-meta">
+                        <div class="preview-meta-item">
+                            <span class="preview-meta-label">类型</span>
+                            <span class="preview-meta-value">${data.type.toUpperCase()}</span>
+                        </div>
+                        <div class="preview-meta-item">
+                            <span class="preview-meta-label">TTL</span>
+                            <span class="preview-meta-value">${data.ttl === -1 ? '永久' : data.ttl + ' 秒'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-actions">
+                    <button class="btn" onclick="editTtl()">⏱ 设置过期</button>
+                    <button class="btn btn-danger" onclick="deleteKey()">🗑 删除</button>
+                </div>
+                <div class="preview-content">${valueHtml}</div>
+            `;
+        }
+
+        function renderEmptyPreview() {
+            document.getElementById('previewPanel').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📦</div>
+                    <div class="empty-text">选择一个键查看详情</div>
+                </div>`;
+        }
+
+        // 创建键
+        function openCreateModal() { document.getElementById('createModal').classList.add('show'); }
+        function closeCreateModal() { document.getElementById('createModal').classList.remove('show'); }
+
+        async function createKey() {
+            const name = document.getElementById('newKeyName').value.trim();
+            const value = document.getElementById('newKeyValue').value.trim();
+            const ttl = document.getElementById('newKeyTtl').value;
+            if (!name || !value) { alert('请输入键名和值'); return; }
+            
+            try {
+                const payload = { value };
+                if (ttl) payload.ttl = parseInt(ttl);
+                const res = await fetch(`/api/keys/${encodeURIComponent(name)}?db=${currentDb}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    closeCreateModal();
+                    document.getElementById('newKeyName').value = '';
+                    document.getElementById('newKeyValue').value = '';
+                    document.getElementById('newKeyTtl').value = '';
+                    await refreshAll();
+                    await selectKey(name);
+                } else {
+                    alert('创建失败: ' + data.error);
+                }
+            } catch (e) { alert('创建失败: ' + e.message); }
+        }
+
+        // 删除键
+        async function deleteKey() {
+            if (!selectedKey || !confirm(`确定删除 "${selectedKey}" ?`)) return;
+            try {
+                const res = await fetch(`/api/keys/${encodeURIComponent(selectedKey)}?db=${currentDb}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    selectedKey = null;
+                    renderEmptyPreview();
+                    await refreshAll();
+                }
+            } catch (e) { alert('删除失败'); }
+        }
+
+        // 设置TTL
+        async function editTtl() {
+            const ttl = prompt('输入过期时间（秒）:');
+            if (ttl === null) return;
+            try {
+                const res = await fetch(`/api/keys/${encodeURIComponent(selectedKey)}/ttl?db=${currentDb}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ttl: parseInt(ttl) })
+                });
+                if ((await res.json()).success) await loadKeyDetail(selectedKey);
+            } catch (e) { alert('设置失败'); }
+        }
+
+        // 搜索
+        let searchTimer;
+        document.getElementById('searchInput').addEventListener('input', e => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => loadKeys(e.target.value || '*'), 300);
+        });
+
+        // 工具函数
+        function escapeHtml(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function escapeAttr(t) { return String(t).replace(/'/g, "\\'").replace(/"/g, '\\"'); }
+
+        init();
+    </script>
+</body>
+</html>

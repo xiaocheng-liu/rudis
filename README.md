@@ -39,6 +39,7 @@ Rudis 是一个采用 Rust 语言编写得高性能键值存储系统，旨在�
 
 ### v0.3.0
 
+- 新增 webport 参数，嵌入 Web UI。
 - 新增 String 数据结构 Msetnx 命令。
 - 新增 SortedSet 数据结构 Zincrby 命令。
 - 新增 SortedSet 数据结构 Zlexcount 命令。
