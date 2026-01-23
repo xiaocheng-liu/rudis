@@ -11,7 +11,7 @@ use crate::{
             lindex::Lindex, llen::Llen, lpop::Lpop, lpush::Lpush, lpushx::Lpushx, lrange::Lrange,
             lrem::Lrem, lset::Lset, ltrim::Ltrim, rpop::Rpop, rpush::Rpush, rpushx::Rpushx,
         }, server::{bgsave::Bgsave, dbsize::Dbsize, flushall::Flushall, flushdb::Flushdb, info::Info, save::Save}, server_sync::{psync::Psync, replconf::Replconf}, set::{
-            sadd::Sadd, scard::Scard, sdiff::Sdiff, sinter::Sinter, sismember::Sismember, smembers::Smembers, spop::Spop, srem::Srem, sscan::Sscan, sunion::Sunion, sunionstore::Sunionstore, srandmember::Srandmember
+            sadd::Sadd, scard::Scard, sdiff::Sdiff, sinter::Sinter, sismember::Sismember, smembers::Smembers, spop::Spop, srem::Srem, sscan::Sscan, sunion::Sunion, sunionstore::Sunionstore, srandmember::Srandmember, sdiffstore::Sdiffstore, sinterstore::Sinterstore, smove::Smove
         }, sorted_set::{
             zadd::Zadd, zcard::Zcard, zcount::Zcount, zincrby::Zincrby, zlexcount::Zlexcount, zrank::Zrank, zrem::Zrem, zscore::Zscore, zrange::Zrange,
         }, string::{
@@ -83,6 +83,9 @@ pub enum Command {
     Sinter(Sinter),
     Spop(Spop),
     Srem(Srem),
+    Sdiffstore(Sdiffstore),
+    Sinterstore(Sinterstore),
+    Smove(Smove),
     Srandmember(Srandmember),
     Flushall(Flushall),    Lpushx(Lpushx),
     Rpushx(Rpushx),
@@ -184,6 +187,9 @@ impl Command {
             "SMEMBERS" => Command::Smembers(Smembers::parse_from_frame(frame)?),
             "SPOP" => Command::Spop(Spop::parse_from_frame(frame)?),
             "SREM" => Command::Srem(Srem::parse_from_frame(frame)?),
+            "SDIFFSTORE" => Command::Sdiffstore(Sdiffstore::parse_from_frame(frame)?),
+            "SINTERSTORE" => Command::Sinterstore(Sinterstore::parse_from_frame(frame)?),
+            "SMOVE" => Command::Smove(Smove::parse_from_frame(frame)?),
             "SRANDMEMBER" => Command::Srandmember(Srandmember::parse_from_frame(frame)?),
             "LPUSHX" => Command::Lpushx(Lpushx::parse_from_frame(frame)?),
             "RPUSHX" => Command::Rpushx(Rpushx::parse_from_frame(frame)?),
@@ -272,6 +278,9 @@ impl Command {
             Command::Sinter(_) |
             Command::Spop(_) |
             Command::Srem(_) |
+            Command::Sdiffstore(_) |
+            Command::Sinterstore(_) |
+            Command::Smove(_) |
             Command::Sunionstore(_) |
             Command::Zadd(_) |
             Command::Zincrby(_) |

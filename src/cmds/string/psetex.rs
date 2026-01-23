@@ -44,7 +44,7 @@ impl Psetex {
     }
 
     pub fn apply(self, db: &mut Db) -> Result<Frame, Error> {
-        // 如果键已存在，先清除旧的过期记录
+        // if the key already exists, clear the old expired records first
         if db.records.contains_key(&self.key) {
             db.expire_records.remove(&self.key);
         }
