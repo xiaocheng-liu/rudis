@@ -2,9 +2,9 @@ use anyhow::Error;
 
 use crate::{
     cmds::{
-        connect::{auth::Auth, client::Client, echo::Echo, ping::Ping, select::Select}, hash::{
+        connect::{auth::Auth, client::Client, echo::Echo, ping::Ping, select::Select},         hash::{
             hdel::Hdel, hexists::Hexists, hget::Hget, hgetall::Hgetall, hincrby::Hincrby, hincrbyfloat::HincrbyFloat, hkeys::Hkeys, hlen::Hlen,
-            hmget::Hmget, hmset::Hmset, hset::Hset, hsetnx::Hsetnx, hstrlen::Hstrlen, hvals::Hvals,
+            hmget::Hmget, hmset::Hmset, hset::Hset, hsetnx::Hsetnx, hstrlen::Hstrlen, hvals::Hvals, hscan::Hscan,
         }, key::{
             del::Del, exists::Exists, expire::Expire, expireat::ExpireAt, keys::Keys, r#move::Move, persist::Persist, pexpire::Pexpire, pexpireat::PexpireAt, pttl::Pttl, randomkey::RandomKey, rename::Rename, renamenx::Renamenx, scan::Scan, ttl::Ttl, r#type::Type
         }, listing::{
@@ -73,6 +73,7 @@ pub enum Command {
     Lpop(Lpop),
     Llen(Llen),
     Hvals(Hvals),
+    Hscan(Hscan),
     Rpush(Rpush),
     Lpush(Lpush),
     Sadd(Sadd),
@@ -87,7 +88,8 @@ pub enum Command {
     Sinterstore(Sinterstore),
     Smove(Smove),
     Srandmember(Srandmember),
-    Flushall(Flushall),    Lpushx(Lpushx),
+    Flushall(Flushall),
+    Lpushx(Lpushx),
     Rpushx(Rpushx),
     Decr(Decr),
     Incr(Incr),
@@ -174,6 +176,7 @@ impl Command {
             "LPOP" => Command::Lpop(Lpop::parse_from_frame(frame)?),
             "LLEN" => Command::Llen(Llen::parse_from_frame(frame)?),
             "HVALS" => Command::Hvals(Hvals::parse_from_frame(frame)?),
+            "HSCAN" => Command::Hscan(Hscan::parse_from_frame(frame)?),
             "HINCRBY" => Command::Hincrby(Hincrby::parse_from_frame(frame)?),
             "HINCRBYFLOAT" => Command::HincrbyFloat(HincrbyFloat::parse_from_frame(frame)?),
             "RPUSH" => Command::Rpush(Rpush::parse_from_frame(frame)?),
