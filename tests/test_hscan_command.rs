@@ -1,14 +1,6 @@
 #[cfg(test)]
 mod tests {
     use redis::{Client, Commands, Connection};
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    fn get_unique_suffix() -> String {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards");
-        format!("{}_{}", now.as_secs(), now.subsec_nanos())
-    }
 
     fn setup() -> Connection {
         let client = Client::open("redis://127.0.0.1:6379/").unwrap();
@@ -25,25 +17,21 @@ mod tests {
     fn test_hscan_basic() {
         let mut con = setup();
         
-        let unique_suffix = get_unique_suffix();
-        let hash_key = format!("myhash_{}", unique_suffix);
-        
         // clean up the database
         let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
         
         // add some test data to the hash
-        let _: () = con.hset(&hash_key, "field1", "value1").unwrap();
-        let _: () = con.hset(&hash_key, "field2", "value2").unwrap();
-        let _: () = con.hset(&hash_key, "field3", "value3").unwrap();
+        let _: () = con.hset("myhash", "field1", "value1").unwrap();
+        let _: () = con.hset("myhash", "field2", "value2").unwrap();
+        let _: () = con.hset("myhash", "field3", "value3").unwrap();
         
         // test basic hscan commands
-        let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg(&hash_key).arg("0").query(&mut con).unwrap();
+        let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg("myhash").arg("0").query(&mut con).unwrap();
         let (cursor, fields_values) = result;
 
         // validate the returned results
         assert_eq!(cursor, 0);  // since there are only 3 fields and the default COUNT is 10, all fields should be returned at once, with the cursor set to 0
         assert!(!fields_values.is_empty());
-        // Changed: Make this assertion more flexible since different implementations may return different amounts of data
         assert_eq!(fields_values.len(), 6);  // 3 fields - value pairs = 6 elements
         
         // check the returned fields and values
@@ -62,24 +50,20 @@ mod tests {
     fn test_hscan_with_match() {
         let mut con = setup();
         
-        let unique_suffix = get_unique_suffix();
-        let hash_key = format!("myhash_{}", unique_suffix);
-        
         // clean up the database
         let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
         
         // add some test data to the hash
-        let _: () = con.hset(&hash_key, "user:1", "value1").unwrap();
-        let _: () = con.hset(&hash_key, "user:2", "value2").unwrap();
-        let _: () = con.hset(&hash_key, "admin:1", "value3").unwrap();
+        let _: () = con.hset("myhash", "user:1", "value1").unwrap();
+        let _: () = con.hset("myhash", "user:2", "value2").unwrap();
+        let _: () = con.hset("myhash", "admin:1", "value3").unwrap();
         
         // test hscan commands with match parameters
-        let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg(&hash_key).arg("0").arg("MATCH").arg("user:*").query(&mut con).unwrap();
+        let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg("myhash").arg("0").arg("MATCH").arg("user:*").query(&mut con).unwrap();
         let (cursor, fields_values) = result;
         
         // validate the returned results
         assert_eq!(cursor, 0);
-        // Changed: Allow for flexible length as implementation may vary
         assert_eq!(fields_values.len(), 4);  // 2 fields - value pairs = 4 elements
         
         // all returned fields should match the pattern "user:*"
@@ -92,40 +76,34 @@ mod tests {
     fn test_hscan_with_count() {
         let mut con = setup();
         
-        let unique_suffix = get_unique_suffix();
-        let hash_key = format!("myhash_{}", unique_suffix);
-        
         // clean up the database
         let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
         
         // add some test data to the hash
         for i in 0..20 {
-            let _: () = con.hset(&hash_key, format!("field_{}", i), format!("value_{}", i)).unwrap();
+            let _: () = con.hset("myhash", format!("field_{}", i), format!("value_{}", i)).unwrap();
         }
         
         // test the hscan command with the count parameter
-        let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg(&hash_key).arg("0").arg("COUNT").arg("5").query(&mut con).unwrap();
+        let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg("myhash").arg("0").arg("COUNT").arg("5").query(&mut con).unwrap();
         let (cursor, fields_values) = result;
         
         // validate the returned results
         assert!(cursor >= 0);
         // should return about 5 field-value pairs (exact number may vary by implementation)
         assert!(!fields_values.is_empty());
-        assert!(fields_values.len() <= 40); // give some leeway (5 fields - value pairs = 10 elements, but maybe more)
+        assert!(fields_values.len() <= 20); // give some leeway (5 fields - value pairs = 10 elements, but maybe more)
     }
 
     #[test]
     fn test_hscan_nonexistent_key() {
         let mut con = setup();
         
-        let unique_suffix = get_unique_suffix();
-        let nonexistent_key = format!("nonexistent_{}", unique_suffix);
-        
         // clean up the database
         let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
         
         // tests for hscan commands that do not have keys
-        let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg(&nonexistent_key).arg("0").query(&mut con).unwrap();
+        let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg("nonexistent").arg("0").query(&mut con).unwrap();
         let (cursor, fields_values) = result;
         
         // validate the returned results
@@ -137,30 +115,24 @@ mod tests {
     fn test_hscan_wrong_type() {
         let mut con = setup();
         
-        let unique_suffix = get_unique_suffix();
-        let string_key = format!("string_key_{}", unique_suffix);
-        
         // clean up the database
         let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
         
         // add a key of type string
-        let _: () = con.set(&string_key, "value").unwrap();
+        let _: () = con.set("string_key", "value").unwrap();
         
         // test hscan commands for wrong type keys
-        let result: Result<(i32, Vec<String>), redis::RedisError> = redis::cmd("HSCAN").arg(&string_key).arg("0").query(&mut con);
+        let result: Result<(i32, Vec<String>), redis::RedisError> = redis::cmd("HSCAN").arg("string_key").arg("0").query(&mut con);
         
         // verify return errors
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("wrong kind of value") || err.to_string().contains("WRONGTYPE"));
+        assert!(err.to_string().contains("wrong kind of value"));
     }
 
     #[test]
     fn test_hscan_complete_iteration() {
         let mut con = setup();
-        
-        let unique_suffix = get_unique_suffix();
-        let hash_key = format!("myhash_{}", unique_suffix);
         
         // clean up the database
         let _: () = redis::cmd("FLUSHDB").exec(&mut con).unwrap();
@@ -168,7 +140,7 @@ mod tests {
         // add some test data to the hash
         let test_fields: Vec<String> = (0..10).map(|i| format!("field_{}", i)).collect();
         for field in &test_fields {
-            let _: () = con.hset(&hash_key, field, "test_value").unwrap();
+            let _: () = con.hset("myhash", field, "test_value").unwrap();
         }
         
         // iterate on all fields completely
@@ -176,12 +148,12 @@ mod tests {
         let mut all_found_fields = std::collections::HashSet::new();
         
         loop {
-            let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg(&hash_key).arg(cursor).arg("MATCH").arg("field_*").query(&mut con).unwrap();
+            let result: (i32, Vec<String>) = redis::cmd("HSCAN").arg("myhash").arg(cursor).arg("MATCH").arg("field_*").query(&mut con).unwrap();
             let (next_cursor, fields_values) = result;
             
             // Extract field name (every other element is the field name)
             for i in (0..fields_values.len()).step_by(2) {
-                if i + 1 < fields_values.len() {  // Fixed: Check bounds properly
+                if i < fields_values.len() {
                     all_found_fields.insert(fields_values[i].clone());
                 }
             }
@@ -193,10 +165,10 @@ mod tests {
         }
         
         // validation found all fields
-        // Changed: Allow for flexibility in case of duplicate returns or other implementation differences
         assert_eq!(all_found_fields.len(), test_fields.len());
         for field in &test_fields {
             assert!(all_found_fields.contains(field));
         }
     }
 }
+
