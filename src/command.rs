@@ -18,6 +18,8 @@ use crate::{
             append::Append, decr::Decr, decrby::Decrby, get::Get, getrange::GetRange, getset::GetSet, incr::Incr, incrby::Incrby, incrbyfloat::IncrbyFloat, mget::Mget, mset::Mset, msetnx::Msetnx, set::Set, setrange::SetRange, strlen::Strlen, setex::Setex, psetex::Psetex, setnx::Setnx, setbit::Setbit, getbit::Getbit, bitcount::Bitcount, bitop::Bitop
         }, transaction::{
             discard::Discard, exec::Exec, multi::Multi
+        }, hyperloglog::{
+            pfadd::Pfadd, pfcount::Pfcount, pfmerge::Pfmerge
         }, unknown::Unknown
     },
     frame::Frame,
@@ -131,6 +133,10 @@ pub enum Command {
     Multi(Multi),
     Discard(Discard),
     Exec(Exec),
+    // HyperLogLog 命令
+    Pfadd(Pfadd),
+    Pfcount(Pfcount),
+    Pfmerge(Pfmerge),
 }
 impl Command {
     pub fn parse_from_frame(frame: Frame) -> Result<Self, Error> {
@@ -239,6 +245,9 @@ impl Command {
             "DISCARD" => Command::Discard(Discard::parse_from_frame(frame)?),
             "SCAN" => Command::Scan(Scan::parse_from_frame(frame)?),
             "SSCAN" => Command::Sscan(Sscan::parse_from_frame(frame)?),
+            "PFADD" => Command::Pfadd(Pfadd::parse_from_frame(frame)?),
+            "PFCOUNT" => Command::Pfcount(Pfcount::parse_from_frame(frame)?),
+            "PFMERGE" => Command::Pfmerge(Pfmerge::parse_from_frame(frame)?),
             _ => Command::Unknown(Unknown::parse_from_frame(frame)?),
         };
         Ok(command)
@@ -299,6 +308,8 @@ impl Command {
             Command::Zincrby(_) |
             Command::Zrem(_) |
             Command::Move(_) |
+            Command::Pfadd(_) |
+            Command::Pfmerge(_) |
             _ => false,
         }
     }

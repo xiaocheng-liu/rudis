@@ -11,6 +11,7 @@ use tokio::sync::{
 };
 
 use crate::{command::Command, frame::Frame, tools::pattern};
+use crate::store::hyperloglog::HyperLogLog;
 
 // 数据库快照数据结构
 #[derive(Clone, Encode, Decode)]
@@ -53,7 +54,8 @@ pub enum Structure {
     VectorCollection(Vector),
     Set(HashSet<String>),
     List(Vec<String>),
-    Json(String)  // 使用字符串存储JSON数据
+    Json(String),  // 使用字符串存储JSON数据
+    HyperLogLog(HyperLogLog),
 }
 
 #[derive(Clone, Encode, Decode)]
@@ -130,6 +132,12 @@ impl Db {
                 Some(DatabaseMessage::Restore(snapshot)) => {
                     self.records = snapshot.records;
                     self.expire_records = snapshot.expire_records;
+                    // 重置所有 HyperLogLog 的缓存
+                    for (_, structure) in self.records.iter_mut() {
+                        if let Structure::HyperLogLog(hll) = structure {
+                            hll.reset_cache();
+                        }
+                    }
                 },
                 Some(DatabaseMessage::ResetChanges) => {
                     self.changes.store(0, Ordering::Relaxed);
@@ -239,6 +247,9 @@ impl Db {
             Command::Sscan(sscan) => sscan.apply(self),
             Command::Msetnx(msetnx) => msetnx.apply(self),
             Command::Zrange(zrange) => zrange.apply(self),
+            Command::Pfadd(pfadd) => pfadd.apply(self),
+            Command::Pfcount(pfcount) => pfcount.apply(self),
+            Command::Pfmerge(pfmerge) => pfmerge.apply(self),
             _ => Err(Error::msg("Unknown command")),
         }
     }
