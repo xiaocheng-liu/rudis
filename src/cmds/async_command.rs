@@ -137,7 +137,7 @@ pub trait HandlerAsyncCommand: Sized + Clone {
     /// 在 Handler 中异步执行命令
     /// 
     /// 接收 `&mut Handler`，命令自己决定如何使用 Handler 的资源
-    /// - 访问 `blocking_manager`：`handler.get_blocking_manager()`
+    /// - 访问 `blocking_manager`：`handler.get_state().blocking_list`
     /// - 访问 `session_manager`：`handler.get_session_manager()`
     /// - 执行数据库命令：`handler.apply_db_command(command).await`
     /// 

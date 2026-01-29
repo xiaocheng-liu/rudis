@@ -3,6 +3,7 @@ use crate::command::Command;
 use crate::frame::Frame;
 use crate::server::Handler;
 use crate::cmds::async_command::HandlerAsyncCommand;
+use crate::store::blocking::{BlockDirection, BlockingQueueManager};
 
 /// 统一的异步命令处理入口
 /// 
@@ -47,17 +48,16 @@ pub async fn try_apply_command(
 ///
 /// 这样设计的好处：
 /// 1. Handler 保持简洁，不需要为每个命令添加 handle_xxx 方法
-/// 2. 阻塞逻辑集中在 blocking_handler 模块
-/// 3. 易于扩展：只需在 blocking_handler 中添加新命令的处理
+/// 2. 阻塞逻辑集中在 command_handler 模块，不再依赖外部 blocking 模块
+/// 3. 易于扩展：只需在 try_wakeup_for_command 中添加新命令的处理
 async fn handle_blocking_aware_command(
     handler: &mut Handler,
     command: Command,
 ) -> Result<Frame, Error> {
-    use crate::server::blocking::try_wakeup_for_command;
 
     // 尝试唤醒阻塞的客户端
     let wakeup_result = {
-        let mut blocking_manager = handler.get_blocking_manager().lock().await;
+        let mut blocking_manager = handler.get_state().blocking_list.lock().await;
         try_wakeup_for_command(&command, &mut blocking_manager)
     };
 
@@ -73,4 +73,50 @@ async fn handle_blocking_aware_command(
 
     // 没有等待者或唤醒失败，正常执行数据库操作
     handler.apply_db_command(command).await
+}
+
+/// 尝试为命令唤醒阻塞的客户端
+/// 
+/// 如果命令是 LPUSH/RPUSH 且有关键的阻塞等待者，直接唤醒并返回结果
+/// 否则返回 None，表示需要正常执行数据库操作
+///
+fn try_wakeup_for_command(
+    command: &Command,
+    blocking_manager: &mut BlockingQueueManager,
+) -> Option<(usize, Frame)> {
+    match command {
+        Command::Lpush(lpush) => {
+            let has_waiting = blocking_manager.has_waiting(lpush.key(), BlockDirection::Left);
+            
+            if has_waiting {
+                if let Some(value) = lpush.values().first().cloned() {
+                    if let Some((session_id, response_frame)) = blocking_manager.try_wakeup(
+                        lpush.key(),
+                        BlockDirection::Left,
+                        value,
+                    ) {
+                        return Some((session_id, response_frame));
+                    }
+                }
+            }
+            None
+        },
+        Command::Rpush(rpush) => {
+            let has_waiting = blocking_manager.has_waiting(rpush.key(), BlockDirection::Right);
+            
+            if has_waiting {
+                if let Some(value) = rpush.values().first().cloned() {
+                    if let Some((session_id, response_frame)) = blocking_manager.try_wakeup(
+                        rpush.key(),
+                        BlockDirection::Right,
+                        value,
+                    ) {
+                        return Some((session_id, response_frame));
+                    }
+                }
+            }
+            None
+        },
+        _ => None,
+    }
 }

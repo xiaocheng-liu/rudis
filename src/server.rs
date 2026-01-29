@@ -9,7 +9,6 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::oneshot;
-use tokio::sync::Mutex;
 
 use crate::args::Args;
 use crate::network::session::Session;
@@ -23,10 +22,10 @@ use crate::replication::ReplicationManager;
 use crate::command::Command;
 use crate::frame::Frame;
 
-mod blocking;
 mod command_handler;
-use blocking::create_blocking_manager;
+mod state;
 use command_handler::try_apply_command;
+use state::ServerState;
 
 pub struct Server {
     args: Arc<Args>,
@@ -34,14 +33,14 @@ pub struct Server {
     aof_sender: Option<Sender<(usize, Frame)>>,
     session_manager: Arc<SessionManager>,
     db_manager: Arc<DatabaseManager>,
-    blocking_manager: Arc<Mutex<crate::store::blocking::BlockingQueueManager>>,
+    state: Arc<ServerState>,
 }
 
 impl Server {
 
     pub fn new(args: Arc<Args>, db_manager: Arc<DatabaseManager>) -> Self {
         let session_manager = Arc::new(SessionManager::new());
-        let blocking_manager = create_blocking_manager();
+        let state = Arc::new(ServerState::new());
         let (aof_file, aof_sender) = if args.appendonly == "yes" {
             let file_path = PathBuf::from(&args.dir).join(&args.appendfilename);
             let sync_strategy = SyncStrategy::from_str(&args.appendfsync);
@@ -58,7 +57,7 @@ impl Server {
             aof_sender,
             session_manager,
             db_manager,
-            blocking_manager,
+            state,
         }
     }
 
@@ -105,8 +104,8 @@ impl Server {
                             let aof_sender = self.aof_sender.clone(); 
                             let session_manager_clone = self.session_manager.clone();
                             let db_manager_clone = self.db_manager.clone();
-                            let blocking_manager_clone = self.blocking_manager.clone();
-                            let mut handler = Handler::new(db_manager_clone, session_manager_clone, stream, self.args.clone(), aof_sender, blocking_manager_clone);
+                            let state_clone = self.state.clone();
+                            let mut handler = Handler::new(db_manager_clone, session_manager_clone, stream, self.args.clone(), aof_sender, state_clone);
                             tokio::spawn(async move {
                                 handler.handle().await;
                             });
@@ -173,7 +172,7 @@ pub struct Handler {
     session_manager: Arc<SessionManager>,
     db_manager: Arc<DatabaseManager>,
     args: Arc<Args>,
-    blocking_manager: Arc<Mutex<crate::store::blocking::BlockingQueueManager>>,
+    state: Arc<ServerState>,
 }
 
 impl Handler {
@@ -190,11 +189,9 @@ impl Handler {
         &self.args
     }
 
-    /// 获取阻塞队列管理器
-    /// 
-    /// 提供对阻塞队列管理器的访问，用于管理客户端阻塞请求
-    pub fn get_blocking_manager(&self) -> &Arc<Mutex<crate::store::blocking::BlockingQueueManager>> {
-        &self.blocking_manager
+    /// 获取服务器状态容器
+    pub fn get_state(&self) -> &Arc<ServerState> {
+        &self.state
     }
 
     /// 获取会话管理器
@@ -207,7 +204,7 @@ impl Handler {
 
 impl Handler {
 
-    pub fn new(db_manager: Arc<DatabaseManager>, session_manager: Arc<SessionManager>, stream: TcpStream, args: Arc<Args>, aof_sender: Option<Sender<(usize,Frame)>>, blocking_manager: Arc<Mutex<crate::store::blocking::BlockingQueueManager>>) -> Self {
+    pub fn new(db_manager: Arc<DatabaseManager>, session_manager: Arc<SessionManager>, stream: TcpStream, args: Arc<Args>, aof_sender: Option<Sender<(usize,Frame)>>, state: Arc<ServerState>) -> Self {
         let args_ref = args.as_ref();
         let certification = args_ref.requirepass.is_none();
         let sender = db_manager.as_ref().get_sender(0);
@@ -221,7 +218,7 @@ impl Handler {
             session_manager,
             db_manager,
             args,
-            blocking_manager,
+            state,
         }
     }
 
@@ -278,9 +275,8 @@ impl Handler {
             let bytes = match self.session.connection.read_bytes().await {
                 Ok(bytes) => bytes,
                 Err(_e) => {
-                    // 清理阻塞请求
-                    let mut blocking_manager = self.blocking_manager.lock().await;
-                    blocking_manager.cleanup_session(self.session.get_id());
+                    // 清理会话相关的所有资源（阻塞请求、订阅等）
+                    self.state.cleanup_session(self.session.get_id()).await;
                     self.session_manager.remove_session(self.session.get_id());
                     return;
                 }

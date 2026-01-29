@@ -82,7 +82,7 @@ impl HandlerAsyncCommand for Blpop {
             Some(Duration::from_secs(self.timeout))
         };
         
-        let mut blocking_manager = handler.get_blocking_manager().lock().await;
+        let mut blocking_manager = handler.get_state().blocking_list.lock().await;
         let session_id = handler.get_session().get_id();
         let receiver = blocking_manager.register_blocking_request(
             self.keys.clone(),
@@ -94,7 +94,7 @@ impl HandlerAsyncCommand for Blpop {
         
         // 3. 使用 tokio::select! 处理超时
         let timeout_duration = timeout.unwrap_or(Duration::from_secs(3600));
-        let blocking_manager_clone = handler.get_blocking_manager().clone();
+        let blocking_manager_clone = handler.get_state().blocking_list.clone();
         
         tokio::select! {
             result = receiver => {
